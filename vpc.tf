@@ -1,36 +1,26 @@
-
 module "vpc" {
-  source  = "aws-ia/vpc/aws"
-  version = ">= 4.0.0"
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.1.2"
+  name    = "my-vpc"
+  cidr    = "10.0.0.0/16"
 
-  name       = "multi-az-vpc"
-  cidr_block = "10.0.0.0/16"
-  az_count   = 3
+  azs             = var.azs[*]
+  private_subnets = var.private_subnets[*]
+  public_subnets  = var.public_subnets[*]
 
-  subnets = {
-    public = {
-      name_prefix               = "my_public" # omit to prefix with "public"
-      cidrs                     = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
-      nat_gateway_configuration = "single_az" # options: "single_az", "none"
-    }
+  enable_nat_gateway  = true
+  single_nat_gateway  = true
+  reuse_nat_ips       = true
+  external_nat_ip_ids = aws_eip.nat.*.id
 
-    private_app = {
-      # omitting name_prefix defaults value to "private_app"
-      # name_prefix  = "private_app"
-      cidrs                   = ["10.0.3.0/24", "10.0.4.0/24", "10.0.5.0/24"]
-      connect_to_public_natgw = true
-    }
-
-    private_rds = {
-      # omitting name_prefix defaults value to "private_rds"
-      # name_prefix             = "private_rds"
-      cidrs                   = ["10.0.6.0/24", "10.0.7.0/24", "10.0.8.0/24"]
-      connect_to_public_natgw = false
-    }
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
   }
+}
 
-  #   vpc_flow_logs = {
-  #     log_destination_type = "cloud-watch-logs"
-  #     retention_in_days    = 180
-  #   }
+resource "aws_eip" "nat" {
+  count = 1
+
+  domain = "vpc"
 }
